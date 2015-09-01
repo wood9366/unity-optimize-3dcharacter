@@ -1,3 +1,7 @@
 Library
 Temp
 *.swp
+*.csproj
+*.unityproj
+*.sln
+*.userprefs
