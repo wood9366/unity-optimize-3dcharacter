@@ -11,20 +11,20 @@ public class SpriteCharacter : MonoBehaviour {
 	public TextAsset AnimConfig;
 
 	[System.Serializable]
-	public struct SpriteData {
+	public class SpriteData {
 		public Texture Tex;
 		public TextAsset Config;
 	}
 
 	public List<SpriteData> SpriteDatas;
 
-	private struct AnimationData {
+	private class AnimationData {
 		public string Name;
 		public int StartFrame;
 		public int EndFrame;
 	}
 
-	private struct FrameData {
+	private class FrameData {
 		public Texture Tex;
 		public int FrameNo;
 		public int x;
@@ -47,6 +47,22 @@ public class SpriteCharacter : MonoBehaviour {
 			loadAnimData(animData.text);
 		}
 
+		public AnimationData getAnimData(string name) {
+			try {
+				return _animDatas[name];
+			} catch (System.Exception) {
+				return null;
+			}
+		}
+
+		public FrameData getFrameData(int angleB, int frame) {
+			try {
+				return _directFrames[angleB][frame];
+			} catch (System.Exception) {
+				return null;
+			}
+		}
+
 		private void loadAnimData(string content) {
 			StringReader r = new StringReader(content);
 
@@ -56,13 +72,13 @@ public class SpriteCharacter : MonoBehaviour {
 				try {
 					string[] items = line.Split(',');
 
-					AnimationData animData;
+					AnimationData animData = new AnimationData();
 
 					animData.Name = items[0];
 					animData.StartFrame = int.Parse(items[1]);
 					animData.EndFrame = int.Parse(items[2]);
 
-					_animDatas.Add(animData);
+					_animDatas.Add(animData.Name, animData);
 				} catch (System.Exception e) {
 					Debug.LogWarning("load character sprite anim data exception: " + e.ToString());
 				}
@@ -98,7 +114,7 @@ public class SpriteCharacter : MonoBehaviour {
 				frameNo = int.Parse(items[3]);
 
 				// parse data
-				Vector4 frame = asVector2(data["frame"]);
+				Vector4 frame = asVector4(data["frame"]);
 				Vector2 sourceOffset = asVector2(data["spriteSourceSize"]);
 				Vector2 sourceSize = asVector2(data["sourceSize"]);
 
@@ -141,24 +157,83 @@ public class SpriteCharacter : MonoBehaviour {
 			return new Vector4(node["x"].AsInt, node["y"].AsInt, node["w"].AsInt, node["h"].AsInt);
 		}
 
-		private List<AnimationData> _animDatas = new List<AnimationData>();
+		private Dictionary<string, AnimationData> _animDatas = new Dictionary<string, AnimationData>();
 		private Dictionary<int, Dictionary<int, FrameData>> _directFrames = new Dictionary<int, Dictionary<int, FrameData>>();
 	}
 
-	void updateCharacterSprite(int x, int y, int w, int h) {
+	void updateCharacterSprite(int x, int y, int w, int h, int tw, int th) {
+//		Debug.Log("update character sprite: " + x + ", " + y + ", " + w + ", " + h + ", " + tw + ", " + th);
 		changeSize(w / 300.0f, h / 300.0f);
-		changeUV(x, y, w, h, 1024, 1024);
+		changeUV(x, y, w, h, tw, th);
 	}
 
 	void Awake() {
+		_renderer = GetComponent<MeshRenderer>();
 		_filter = GetComponent<MeshFilter>();
 
 		generateMesh();
 
-		updateCharacterSprite(104, 840, 88, 114);
+//		updateCharacterSprite(104, 840, 88, 114, 1024, 1024);
 
 		_characterData = new CharacterData();
 		_characterData.load(AnimConfig, SpriteDatas);
+	}
+
+	void Start() {
+		play("idle");
+	}
+
+	const int FPS = 30;
+	const float FRAME_DURATION = 1.0f / FPS;
+
+	int playAnimationAngleB = 0;
+
+	bool _isPlaying = false;
+	float _playTime = 0.0f;
+	float _playFrameTime = 0.0f;
+	int _playFrame = 0;
+
+	AnimationData _playAnimData = null;
+
+	void play(string name) {
+		AnimationData animData = _characterData.getAnimData(name);
+
+		if (animData != null) {
+			_playAnimData = animData;
+			_playTime = _playFrameTime = 0.0f;
+			_playFrame = animData.StartFrame;
+			_isPlaying = true;
+
+			updateCharacterFrame();
+		}
+	}
+
+	void Update() {
+		if (_isPlaying) {
+			_playTime += Time.deltaTime;
+			_playFrameTime += Time.deltaTime;
+
+			if (_playFrameTime > FRAME_DURATION) {
+				_playFrameTime -= FRAME_DURATION;
+				_playFrame++;
+
+				// loop
+				if (_playFrame > _playAnimData.EndFrame) {
+					_playFrame = _playAnimData.StartFrame;
+				}
+
+				updateCharacterFrame();
+			}
+		}
+	}
+
+	void updateCharacterFrame() {
+		FrameData frameData = _characterData.getFrameData(playAnimationAngleB, _playFrame);
+		
+		if (frameData != null) {
+			R.sharedMaterial.mainTexture = frameData.Tex;
+			updateCharacterSprite(frameData.x, frameData.y, frameData.w, frameData.h, frameData.Tex.width, frameData.Tex.height);
+		}
 	}
 
 	void generateMesh() {
@@ -196,7 +271,9 @@ public class SpriteCharacter : MonoBehaviour {
 	}
 
 	Mesh M { get { return _filter.sharedMesh; } }
+	MeshRenderer R { get { return _renderer; } }
 
 	private MeshFilter _filter = null;
+	private MeshRenderer _renderer = null;
 	private CharacterData _characterData = null;
 }
