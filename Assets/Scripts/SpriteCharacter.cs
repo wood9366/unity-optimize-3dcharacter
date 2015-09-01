@@ -179,7 +179,7 @@ public class SpriteCharacter : MonoBehaviour {
 
 		generateMesh();
 
-		R.material = new Material(R.material);
+		R.sharedMaterial = new Material(R.sharedMaterial);
 
 		_characterData = new CharacterData();
 		_characterData.load(AnimConfig, SpriteDatas);
