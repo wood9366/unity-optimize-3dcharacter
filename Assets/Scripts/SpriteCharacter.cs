@@ -18,6 +18,8 @@ public class SpriteCharacter : MonoBehaviour {
 
 	public List<SpriteData> SpriteDatas;
 
+	const float SPRITE_CHARACTER_SCALE = 300;
+
 	private class AnimationData {
 		public string Name;
 		public int StartFrame;
@@ -114,9 +116,9 @@ public class SpriteCharacter : MonoBehaviour {
 				frameNo = int.Parse(items[3]);
 
 				// parse data
-				Vector4 frame = asVector4(data["frame"]);
-				Vector2 sourceOffset = asVector2(data["spriteSourceSize"]);
-				Vector2 sourceSize = asVector2(data["sourceSize"]);
+				Vector4 frame = asRect(data["frame"]);
+				Vector2 sourceOffset = asPoint(data["spriteSourceSize"]);
+				Vector2 sourceSize = asSize(data["sourceSize"]);
 
 				// calculate pivot
 				Vector2 pivot = new Vector2(sourceSize.x / 2 - sourceOffset.x, sourceSize.y / 2 - sourceOffset.y);
@@ -149,11 +151,15 @@ public class SpriteCharacter : MonoBehaviour {
 			}
 		}
 
-		private Vector2 asVector2(JSONNode node) {
+		private Vector2 asSize(JSONNode node) {
+			return new Vector2(node["w"].AsInt, node["h"].AsInt);
+		}
+
+		private Vector2 asPoint(JSONNode node) {
 			return new Vector2(node["x"].AsInt, node["y"].AsInt);
 		}
 
-		private Vector4 asVector4(JSONNode node) {
+		private Vector4 asRect(JSONNode node) {
 			return new Vector4(node["x"].AsInt, node["y"].AsInt, node["w"].AsInt, node["h"].AsInt);
 		}
 
@@ -161,9 +167,9 @@ public class SpriteCharacter : MonoBehaviour {
 		private Dictionary<int, Dictionary<int, FrameData>> _directFrames = new Dictionary<int, Dictionary<int, FrameData>>();
 	}
 
-	void updateCharacterSprite(int x, int y, int w, int h, int tw, int th) {
-//		Debug.Log("update character sprite: " + x + ", " + y + ", " + w + ", " + h + ", " + tw + ", " + th);
-		changeSize(w / 300.0f, h / 300.0f);
+	void updateCharacterSprite(int x, int y, int w, int h, float offsetx, float offsety, int tw, int th) {
+//		Debug.Log("update character sprite: " + x + ", " + y + ", " + w + ", " + h + ", " + offsetx + ", " + offsety + ", " + tw + ", " + th);
+		changeSize(w, h, offsetx, offsety);
 		changeUV(x, y, w, h, tw, th);
 	}
 
@@ -173,7 +179,7 @@ public class SpriteCharacter : MonoBehaviour {
 
 		generateMesh();
 
-//		updateCharacterSprite(104, 840, 88, 114, 1024, 1024);
+		R.material = new Material(R.material);
 
 		_characterData = new CharacterData();
 		_characterData.load(AnimConfig, SpriteDatas);
@@ -232,27 +238,30 @@ public class SpriteCharacter : MonoBehaviour {
 		
 		if (frameData != null) {
 			R.sharedMaterial.mainTexture = frameData.Tex;
-			updateCharacterSprite(frameData.x, frameData.y, frameData.w, frameData.h, frameData.Tex.width, frameData.Tex.height);
+			updateCharacterSprite(frameData.x, frameData.y, frameData.w, frameData.h, frameData.pivot.x, frameData.pivot.y, frameData.Tex.width, frameData.Tex.height);
 		}
 	}
 
 	void generateMesh() {
 		_filter.sharedMesh = new Mesh();
 		
-		changeSize(1, 1);
+		changeSize(1, 1, 0, 0);
 		changeUV(0, 0, 1024, 1024, 1024, 1024);
 		
 		M.triangles = new int[] { 0, 2, 1, 0, 3, 2 };
 	}
 
-	void changeSize(float w, float h) {
-		float hw = w / 2;
-		
+	void changeSize(float w, float h, float ox, float oy) {
+		float x0 = -ox / SPRITE_CHARACTER_SCALE;
+		float x1 = (w - ox) / SPRITE_CHARACTER_SCALE;
+		float y0 = (-h + oy) / SPRITE_CHARACTER_SCALE;
+		float y1 = oy / SPRITE_CHARACTER_SCALE;
+
 		M.vertices = new Vector3[] {
-			new Vector3(hw, 0, 0),
-			new Vector3(hw, h, 0),
-			new Vector3(-hw, h, 0),
-			new Vector3(-hw, 0, 0)
+			new Vector3(x1, y0, 0),
+			new Vector3(x1, y1, 0),
+			new Vector3(x0, y1, 0),
+			new Vector3(x0, y0, 0)
 		};
 	}
 
