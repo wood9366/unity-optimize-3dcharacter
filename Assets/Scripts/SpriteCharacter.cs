@@ -8,6 +8,7 @@ using System.IO;
 [RequireComponent(typeof(MeshFilter))]
 [RequireComponent(typeof(MeshRenderer))]
 public class SpriteCharacter : MonoBehaviour {
+	public Camera RenderCam;
 	public TextAsset AnimConfig;
 
 	[System.Serializable]
@@ -192,8 +193,6 @@ public class SpriteCharacter : MonoBehaviour {
 	const int FPS = 30;
 	const float FRAME_DURATION = 1.0f / FPS;
 
-	int playAnimationAngleB = 0;
-
 	bool _isPlaying = false;
 	float _playTime = 0.0f;
 	float _playFrameTime = 0.0f;
@@ -234,12 +233,41 @@ public class SpriteCharacter : MonoBehaviour {
 	}
 
 	void updateCharacterFrame() {
-		FrameData frameData = _characterData.getFrameData(playAnimationAngleB, _playFrame);
+		int angleB = 0;
+
+		Vector3 character2cam = RenderCam.transform.position - transform.position;
+		Vector3 characterForward = -transform.forward;
+		character2cam.y = characterForward.y = 0;
+
+		character2cam.Normalize();
+		characterForward.Normalize();
+
+		float cos = Vector3.Dot(character2cam, characterForward);
+		float angleBRad = Mathf.Acos(cos);
+		angleB = Mathf.RoundToInt(angleBRad * Mathf.Rad2Deg) % 360;
+
+		Debug.Log("angle 0: " + angleB);
+
+		// todo, try to fix anlge larger then 180
+//		Vector3 cross = Vector3.Cross(transform.forward, -RenderCam.transform.forward);
+//		if (cross < 0) angleB = -angleB;
+		if (Mathf.Sin(angleBRad) < 0) angleB = -angleB;
+
+		Debug.Log("angle 1: " + angleB);
+
+		angleB = (int)(angleB / 30) * 30;
+
+		Debug.Log("angle 2: " + angleB);
+		
+		FrameData frameData = _characterData.getFrameData(angleB, _playFrame);
 		
 		if (frameData != null) {
 			R.sharedMaterial.mainTexture = frameData.Tex;
 			updateCharacterSprite(frameData.x, frameData.y, frameData.w, frameData.h, frameData.pivot.x, frameData.pivot.y, frameData.Tex.width, frameData.Tex.height);
 		}
+
+		// update sprite dir like y axis billboard
+		transform.rotation.SetLookRotation(character2cam, Vector3.up);
 	}
 
 	void generateMesh() {
