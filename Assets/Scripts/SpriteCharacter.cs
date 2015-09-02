@@ -4,11 +4,10 @@ using System.Collections.Generic;
 using SimpleJSON;
 using System.IO;
 
-[ExecuteInEditMode]
-[RequireComponent(typeof(MeshFilter))]
-[RequireComponent(typeof(MeshRenderer))]
 public class SpriteCharacter : MonoBehaviour {
 	public Camera RenderCam;
+	public SpriteCharacterRender Render;
+
 	public TextAsset AnimConfig;
 
 	[System.Serializable]
@@ -18,8 +17,6 @@ public class SpriteCharacter : MonoBehaviour {
 	}
 
 	public List<SpriteData> SpriteDatas;
-
-	const float SPRITE_CHARACTER_SCALE = 300;
 
 	private class AnimationData {
 		public string Name;
@@ -168,25 +165,13 @@ public class SpriteCharacter : MonoBehaviour {
 		private Dictionary<int, Dictionary<int, FrameData>> _directFrames = new Dictionary<int, Dictionary<int, FrameData>>();
 	}
 
-	void updateCharacterSprite(int x, int y, int w, int h, float offsetx, float offsety, int tw, int th) {
-//		Debug.Log("update character sprite: " + x + ", " + y + ", " + w + ", " + h + ", " + offsetx + ", " + offsety + ", " + tw + ", " + th);
-		changeSize(w, h, offsetx, offsety);
-		changeUV(x, y, w, h, tw, th);
-	}
-
 	void Awake() {
-		_renderer = GetComponent<MeshRenderer>();
-		_filter = GetComponent<MeshFilter>();
-
-		generateMesh();
-
-		R.sharedMaterial = new Material(R.sharedMaterial);
-
 		_characterData = new CharacterData();
 		_characterData.load(AnimConfig, SpriteDatas);
 	}
 
 	void Start() {
+		_lastAngleB = 0;
 		play("idle");
 	}
 
@@ -233,84 +218,67 @@ public class SpriteCharacter : MonoBehaviour {
 	}
 
 	void updateCharacterFrame() {
-		int angleB = 0;
+		bool isAngleBChange = false;
 
-		Vector3 character2cam = RenderCam.transform.position - transform.position;
-		Vector3 characterForward = -transform.forward;
-		character2cam.y = characterForward.y = 0;
+		int angleB = calcualteAngleB();
 
-		character2cam.Normalize();
-		characterForward.Normalize();
-
-		float cos = Vector3.Dot(character2cam, characterForward);
-		float angleBRad = Mathf.Acos(cos);
-		angleB = Mathf.RoundToInt(angleBRad * Mathf.Rad2Deg) % 360;
-
-		Debug.Log("angle 0: " + angleB);
-
-		// todo, try to fix anlge larger then 180
-//		Vector3 cross = Vector3.Cross(transform.forward, -RenderCam.transform.forward);
-//		if (cross < 0) angleB = -angleB;
-		if (Mathf.Sin(angleBRad) < 0) angleB = -angleB;
-
-		Debug.Log("angle 1: " + angleB);
-
-		angleB = (int)(angleB / 30) * 30;
-
-		Debug.Log("angle 2: " + angleB);
+		isAngleBChange = (angleB != _lastAngleB);
 		
 		FrameData frameData = _characterData.getFrameData(angleB, _playFrame);
 		
 		if (frameData != null) {
-			R.sharedMaterial.mainTexture = frameData.Tex;
-			updateCharacterSprite(frameData.x, frameData.y, frameData.w, frameData.h, frameData.pivot.x, frameData.pivot.y, frameData.Tex.width, frameData.Tex.height);
+			Render.updateCharacterSprite(frameData.Tex, frameData.x, frameData.y, frameData.w, frameData.h, frameData.pivot.x, frameData.pivot.y, frameData.Tex.width, frameData.Tex.height);
 		}
 
-		// update sprite dir like y axis billboard
-		transform.rotation.SetLookRotation(character2cam, Vector3.up);
+		if (isAngleBChange) {
+			Render.updateRotation(angleB);
+		}
+
+		_lastAngleB = angleB;
 	}
 
-	void generateMesh() {
-		_filter.sharedMesh = new Mesh();
+	int calcualteAngleB() {
+		int angleB = 0;
 		
-		changeSize(1, 1, 0, 0);
-		changeUV(0, 0, 1024, 1024, 1024, 1024);
+		float cos = Vector3.Dot(Character2Cam2dVector, CharacterForward2dVector);
+		float angleBRad = Mathf.Acos(cos);
+		angleB = Mathf.RoundToInt(angleBRad * Mathf.Rad2Deg) % 360;
 		
-		M.triangles = new int[] { 0, 2, 1, 0, 3, 2 };
+		Debug.Log("angle 0: " + angleB);
+		
+		// todo, try to fix anlge larger then 180
+		//		Vector3 cross = Vector3.Cross(transform.forward, -RenderCam.transform.forward);
+		//		if (cross < 0) angleB = -angleB;
+		if (Mathf.Sin(angleBRad) < 0) angleB = -angleB;
+		
+		Debug.Log("angle 1: " + angleB);
+		
+		angleB = (int)(angleB / 30) * 30;
+		
+		Debug.Log("angle 2: " + angleB);
+
+		return angleB;
 	}
 
-	void changeSize(float w, float h, float ox, float oy) {
-		float x0 = -ox / SPRITE_CHARACTER_SCALE;
-		float x1 = (w - ox) / SPRITE_CHARACTER_SCALE;
-		float y0 = (-h + oy) / SPRITE_CHARACTER_SCALE;
-		float y1 = oy / SPRITE_CHARACTER_SCALE;
-
-		M.vertices = new Vector3[] {
-			new Vector3(x1, y0, 0),
-			new Vector3(x1, y1, 0),
-			new Vector3(x0, y1, 0),
-			new Vector3(x0, y0, 0)
-		};
+	Vector3 Character2Cam2dVector {
+		get {
+			return get2dVector(RenderCam.transform.position - transform.position);
+		}
 	}
 
-	void changeUV(int x, int y, int w, int h, int tw, int th) {
-		float u0 = x / (float)tw;
-		float u1 = (x + w) / (float)tw;
-		float v0 = (th - y - h) / (float)th;
-		float v1 = (th - y) / (float)th;
-
-		M.uv = new Vector2[] {
-			new Vector2(u1, v0),
-			new Vector2(u1, v1),
-			new Vector2(u0, v1),
-			new Vector2(u0, v0)
-		};
+	Vector3 CharacterForward2dVector {
+		get {
+			return get2dVector(-transform.forward);
+		}
 	}
 
-	Mesh M { get { return _filter.sharedMesh; } }
-	MeshRenderer R { get { return _renderer; } }
+	Vector3 get2dVector(Vector3 vec) {
+		vec.y = 0;
+		vec.Normalize();
 
-	private MeshFilter _filter = null;
-	private MeshRenderer _renderer = null;
+		return vec;
+	}
+
+	private int _lastAngleB = 0;
 	private CharacterData _characterData = null;
 }
