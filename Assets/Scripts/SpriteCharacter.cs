@@ -244,18 +244,16 @@ public class SpriteCharacter : MonoBehaviour {
 		float angleBRad = Mathf.Acos(cos);
 		angleB = Mathf.RoundToInt(angleBRad * Mathf.Rad2Deg) % 360;
 		
-		Debug.Log("angle 0: " + angleB);
+//		Debug.Log("angle 0: " + angleB);
 		
-		// todo, try to fix anlge larger then 180
-		//		Vector3 cross = Vector3.Cross(transform.forward, -RenderCam.transform.forward);
-		//		if (cross < 0) angleB = -angleB;
-		if (Mathf.Sin(angleBRad) < 0) angleB = -angleB;
+		Vector3 cross = Vector3.Cross(CharacterForward2dVector, Character2Cam2dVector);
+		if (cross.y > 0 && angleB > 0) angleB = 360 - angleB;
 		
-		Debug.Log("angle 1: " + angleB);
+//		Debug.Log("angle 1: " + angleB);
 		
 		angleB = (int)(angleB / 30) * 30;
 		
-		Debug.Log("angle 2: " + angleB);
+//		Debug.Log("angle 2: " + angleB);
 
 		return angleB;
 	}
