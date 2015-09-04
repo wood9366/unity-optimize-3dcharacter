@@ -27,10 +27,10 @@ public class SpriteCharacterRender : MonoBehaviour {
 		transform.rotation = rot;
 	}
 
-	public void updateCharacterSprite(Texture tex, int x, int y, int w, int h, float offsetx, float offsety, int tw, int th) {
+	public void updateCharacterSprite(Material mat, int x, int y, int w, int h, float offsetx, float offsety, int tw, int th) {
 		//		Debug.Log("update character sprite: " + x + ", " + y + ", " + w + ", " + h + ", " + offsetx + ", " + offsety + ", " + tw + ", " + th);
 
-		R.sharedMaterial.mainTexture = tex;
+		R.sharedMaterial = mat;
 
 		M.MarkDynamic();
 

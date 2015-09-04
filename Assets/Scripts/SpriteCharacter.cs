@@ -12,7 +12,7 @@ public class SpriteCharacter : MonoBehaviour {
 
 	[System.Serializable]
 	public class SpriteData {
-		public Texture Tex;
+		public Material Mat;
 		public TextAsset Config;
 	}
 
@@ -25,7 +25,7 @@ public class SpriteCharacter : MonoBehaviour {
 	}
 
 	private class FrameData {
-		public Texture Tex;
+		public Material Mat;
 		public int FrameNo;
 		public int x;
 		public int y;
@@ -89,11 +89,11 @@ public class SpriteCharacter : MonoBehaviour {
 			JSONClass SpritesJSON = JSON.Parse(spriteData.Config.text).AsObject;
 
 			foreach (KeyValuePair<string, JSONNode> frameJSON in SpritesJSON["frames"].AsObject) {
-				addFrameData(spriteData.Tex, frameJSON.Key, frameJSON.Value);
+				addFrameData(spriteData.Mat, frameJSON.Key, frameJSON.Value);
 			}
 		}
 
-		private void addFrameData(Texture tex, string name, JSONNode data) {
+		private void addFrameData(Material mat, string name, JSONNode data) {
 			try {
 				// parse name
 //				string characterName = "";
@@ -124,7 +124,7 @@ public class SpriteCharacter : MonoBehaviour {
 				// create frame data
 				FrameData frameData = new FrameData();
 
-				frameData.Tex = tex;
+				frameData.Mat = mat;
 				frameData.FrameNo = frameNo;
 				frameData.x = (int)frame.x;
 				frameData.y = (int)frame.y;
@@ -229,7 +229,7 @@ public class SpriteCharacter : MonoBehaviour {
 		FrameData frameData = _characterData.getFrameData(angleBStep, _playFrame);
 		
 		if (frameData != null) {
-			Render.updateCharacterSprite(frameData.Tex, frameData.x, frameData.y, frameData.w, frameData.h, frameData.pivot.x, frameData.pivot.y, frameData.Tex.width, frameData.Tex.height);
+			Render.updateCharacterSprite(frameData.Mat, frameData.x, frameData.y, frameData.w, frameData.h, frameData.pivot.x, frameData.pivot.y, frameData.Mat.mainTexture.width, frameData.Mat.mainTexture.height);
 		}
 
 		Render.updateRotation(transform.position - RenderCam.transform.position);
