@@ -20,18 +20,32 @@ public class SpriteCharacterRender : MonoBehaviour {
 		transform.rotation = Quaternion.AngleAxis(-angle, Vector3.up);
 	}
 
+	public void updateRotation(Vector3 view) {
+		Quaternion rot = Quaternion.identity;
+		rot.SetLookRotation(view);
+
+		transform.rotation = rot;
+	}
+
 	public void updateCharacterSprite(Texture tex, int x, int y, int w, int h, float offsetx, float offsety, int tw, int th) {
 		//		Debug.Log("update character sprite: " + x + ", " + y + ", " + w + ", " + h + ", " + offsetx + ", " + offsety + ", " + tw + ", " + th);
 
 		R.sharedMaterial.mainTexture = tex;
 
+		M.MarkDynamic();
+
 		changeSize(w, h, offsetx, offsety);
 		changeUV(x, y, w, h, tw, th);
+
+		M.UploadMeshData(false);
 	}
 
 	void generateMesh() {
 		_filter.sharedMesh = new Mesh();
-		
+
+		M.vertices = new Vector3[4];
+		M.uv = new Vector2[4];
+
 		changeSize(1, 1, 0, 0);
 		changeUV(0, 0, 1024, 1024, 1024, 1024);
 		
@@ -43,13 +57,15 @@ public class SpriteCharacterRender : MonoBehaviour {
 		float x1 = (w - ox) / SPRITE_CHARACTER_SCALE;
 		float y0 = (-h + oy) / SPRITE_CHARACTER_SCALE;
 		float y1 = oy / SPRITE_CHARACTER_SCALE;
-		
-		M.vertices = new Vector3[] {
-			new Vector3(x1, y0, 0),
-			new Vector3(x1, y1, 0),
-			new Vector3(x0, y1, 0),
-			new Vector3(x0, y0, 0)
-		};
+
+		Vector3[] vertices = M.vertices;
+
+		vertices[0].Set(x1, y0, 0);
+		vertices[1].Set(x1, y1, 0);
+		vertices[2].Set(x0, y1, 0);
+		vertices[3].Set(x0, y0, 0);
+
+		M.vertices = vertices;
 	}
 	
 	void changeUV(int x, int y, int w, int h, int tw, int th) {
@@ -57,13 +73,15 @@ public class SpriteCharacterRender : MonoBehaviour {
 		float u1 = (x + w) / (float)tw;
 		float v0 = (th - y - h) / (float)th;
 		float v1 = (th - y) / (float)th;
-		
-		M.uv = new Vector2[] {
-			new Vector2(u1, v0),
-			new Vector2(u1, v1),
-			new Vector2(u0, v1),
-			new Vector2(u0, v0)
-		};
+
+		Vector2[] uv = M.uv;
+
+		uv[0].Set(u1, v0);
+		uv[1].Set(u1, v1);
+		uv[2].Set(u0, v1);
+		uv[3].Set(u0, v0);
+
+		M.uv = uv;
 	}
 
 	Mesh M { get { return _filter.sharedMesh; } }

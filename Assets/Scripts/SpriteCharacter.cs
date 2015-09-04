@@ -171,8 +171,7 @@ public class SpriteCharacter : MonoBehaviour {
 	}
 
 	void Start() {
-		_lastAngleB = 0;
-		play("idle");
+		Invoke("playRandom", Random.Range(0,3.0f));
 	}
 
 	const int FPS = 30;
@@ -198,6 +197,12 @@ public class SpriteCharacter : MonoBehaviour {
 		}
 	}
 
+	string[] names = new string[] { "idle" };//, "attack" };
+
+	void playRandom() {
+		play(names[Random.Range(0, names.Length)]);
+	}
+
 	void Update() {
 		if (_isPlaying) {
 			_playTime += Time.deltaTime;
@@ -218,42 +223,27 @@ public class SpriteCharacter : MonoBehaviour {
 	}
 
 	void updateCharacterFrame() {
-		bool isAngleBChange = false;
-
-		int angleB = calcualteAngleB();
-
-		isAngleBChange = (angleB != _lastAngleB);
+		float angleB = calcualteAngleB();
+		int angleBStep = (int)(angleB / 30) * 30;
 		
-		FrameData frameData = _characterData.getFrameData(angleB, _playFrame);
+		FrameData frameData = _characterData.getFrameData(angleBStep, _playFrame);
 		
 		if (frameData != null) {
 			Render.updateCharacterSprite(frameData.Tex, frameData.x, frameData.y, frameData.w, frameData.h, frameData.pivot.x, frameData.pivot.y, frameData.Tex.width, frameData.Tex.height);
 		}
 
-		if (isAngleBChange) {
-			Render.updateRotation(angleB);
-		}
-
-		_lastAngleB = angleB;
+		Render.updateRotation(transform.position - RenderCam.transform.position);
 	}
 
-	int calcualteAngleB() {
-		int angleB = 0;
+	float calcualteAngleB() {
+		float angleB = 0;
 		
 		float cos = Vector3.Dot(Character2Cam2dVector, CharacterForward2dVector);
 		float angleBRad = Mathf.Acos(cos);
-		angleB = Mathf.RoundToInt(angleBRad * Mathf.Rad2Deg) % 360;
-		
-//		Debug.Log("angle 0: " + angleB);
+		angleB = Mathf.Round(angleBRad * Mathf.Rad2Deg) % 360;
 		
 		Vector3 cross = Vector3.Cross(CharacterForward2dVector, Character2Cam2dVector);
 		if (cross.y > 0 && angleB > 0) angleB = 360 - angleB;
-		
-//		Debug.Log("angle 1: " + angleB);
-		
-		angleB = (int)(angleB / 30) * 30;
-		
-//		Debug.Log("angle 2: " + angleB);
 
 		return angleB;
 	}
@@ -277,6 +267,5 @@ public class SpriteCharacter : MonoBehaviour {
 		return vec;
 	}
 
-	private int _lastAngleB = 0;
 	private CharacterData _characterData = null;
 }

@@ -9,24 +9,23 @@ public class ArmyFormationInspector : Editor {
 	}
 
 	public override void OnInspectorGUI () {
-		int row = 4;
-		int col = 4;
-
 		GUILayout.BeginVertical();
 
 		GUILayout.BeginHorizontal();
-		row = EditorGUILayout.IntField(row);
-		col = EditorGUILayout.IntField(col);
+		_formation.FormationRow = EditorGUILayout.IntField(_formation.FormationRow);
+		_formation.FormationCol = EditorGUILayout.IntField(_formation.FormationCol);
 		GUILayout.EndHorizontal();
 
 		if (GUILayout.Button("arrage")) {
 			_formation.Template.SetActive(false);
 
-			for (int r = 0; r < row; r++) {
-				for (int c = 0; c < col; c++) {
-					createSoldier(_formation.Template, 
-					              r.ToString() + "_" + c.ToString(), 
-					              new Vector3(r * _formation.Interval, 0.0f, c * _formation.Interval));
+			for (int r = 0; r < _formation.FormationRow; r++) {
+				for (int c = 0; c < _formation.FormationCol; c++) {
+					Vector3 pos = new Vector3(r * _formation.Interval - ((_formation.FormationRow - 1) * _formation.Interval) / 2, 
+					                          0.0f, 
+					                          c * _formation.Interval - ((_formation.FormationCol - 1) * _formation.Interval) / 2);
+
+					createSoldier(_formation.Template, r.ToString() + "_" + c.ToString(), pos);
 				}
 			}
 		}
