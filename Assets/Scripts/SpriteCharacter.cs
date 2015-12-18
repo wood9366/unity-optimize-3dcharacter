@@ -7,6 +7,8 @@ using System.IO;
 public class SpriteCharacter : MonoBehaviour {
 	public Camera RenderCam;
 	public SpriteCharacterRender Render;
+	public int RotateStep = 30;
+	public int FPS = 30;
 
 	public TextAsset AnimConfig;
 
@@ -174,8 +176,7 @@ public class SpriteCharacter : MonoBehaviour {
 		Invoke("playRandom", Random.Range(0,3.0f));
 	}
 
-	const int FPS = 30;
-	const float FRAME_DURATION = 1.0f / FPS;
+	public float FRAME_DURATION { get { return 1.0f / FPS; } }
 
 	bool _isPlaying = false;
 	float _playTime = 0.0f;
@@ -224,7 +225,7 @@ public class SpriteCharacter : MonoBehaviour {
 
 	void updateCharacterFrame() {
 		float angleB = calcualteAngleB();
-		int angleBStep = (int)(angleB / 30) * 30;
+		int angleBStep = (int)(angleB / RotateStep) * RotateStep;
 		
 		FrameData frameData = _characterData.getFrameData(angleBStep, _playFrame);
 		
